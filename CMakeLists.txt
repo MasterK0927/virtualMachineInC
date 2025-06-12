@@ -5,22 +5,40 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-# Options
-option(SIMPLEVM_BUILD_TESTS "Build tests" OFF)
-
 # Include directories
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
 
-# Sources
-file(GLOB SIMPLEVM_SOURCES
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp
+# Core library
+set(VMCORE_SOURCES
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/CPU.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/Decoder.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/Instance.cpp
 )
 
-add_executable(simplevm ${SIMPLEVM_SOURCES})
+add_library(vmcore ${VMCORE_SOURCES})
 
-# Warnings
 if (CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
-    target_compile_options(simplevm PRIVATE -Wall -Wextra -Wpedantic)
+    target_compile_options(vmcore PRIVATE -Wall -Wextra -Wpedantic)
 elseif (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
-    target_compile_options(simplevm PRIVATE /W4)
+    target_compile_options(vmcore PRIVATE /W4)
+endif()
+
+# VM application
+add_executable(vm_app ${CMAKE_CURRENT_SOURCE_DIR}/apps/vm/main.cpp)
+target_link_libraries(vm_app PRIVATE vmcore)
+
+if (CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
+    target_compile_options(vm_app PRIVATE -Wall -Wextra -Wpedantic)
+elseif (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
+    target_compile_options(vm_app PRIVATE /W4)
+endif()
+
+# Assembler application
+add_executable(asm_app ${CMAKE_CURRENT_SOURCE_DIR}/apps/asm/main.cpp)
+target_link_libraries(asm_app PRIVATE vmcore)
+
+if (CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
+    target_compile_options(asm_app PRIVATE -Wall -Wextra -Wpedantic)
+elseif (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
+    target_compile_options(asm_app PRIVATE /W4)
 endif()
