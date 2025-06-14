@@ -23,6 +23,15 @@ elseif (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
     target_compile_options(vmcore PRIVATE /W4)
 endif()
 
+# Simple tests (no external framework)
+add_executable(vm_tests ${CMAKE_CURRENT_SOURCE_DIR}/tests/test_vm.cpp)
+target_link_libraries(vm_tests PRIVATE vmcore)
+if (CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
+    target_compile_options(vm_tests PRIVATE -Wall -Wextra -Wpedantic)
+elseif (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
+    target_compile_options(vm_tests PRIVATE /W4)
+endif()
+
 # VM application
 add_executable(vm_app ${CMAKE_CURRENT_SOURCE_DIR}/apps/vm/main.cpp)
 target_link_libraries(vm_app PRIVATE vmcore)
