@@ -27,15 +27,31 @@ void VMInstance::attachRamDisk(const std::string& /*path*/) {
 
 void VMInstance::loadProgramBytes(const std::vector<unsigned char>& bytes) {
     if (!m_mem) throw std::runtime_error("Memory not initialized");
-    if (bytes.size() > m_mem->size()) throw std::runtime_error("Program too large for memory");
+
+    // Check for optional header
+    std::vector<unsigned char> payload = bytes;
+    u32 entry = 0;
+    if (hasProgramHeader(bytes)) {
+        auto hdr = readProgramHeader(bytes);
+        payload = stripProgramHeader(bytes);
+        entry = hdr.entry;
+        if (hdr.version != 1) {
+            throw std::runtime_error("Unsupported program version");
+        }
+    }
+
+    if (payload.size() > m_mem->size()) throw std::runtime_error("Program too large for memory");
 
     // load at address 0
     auto& raw = m_mem->raw();
     std::fill(raw.begin(), raw.end(), 0);
-    std::copy(bytes.begin(), bytes.end(), raw.begin());
+    std::copy(payload.begin(), payload.end(), raw.begin());
 
-    // reset CPU to start at 0 and stack at top
+    // reset CPU, then set entry if provided
     m_cpu->reset();
+    if (entry != 0) {
+        m_cpu->setPC(entry);
+    }
 }
 
 void VMInstance::runUntilHalt() {
