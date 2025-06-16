@@ -8,6 +8,7 @@
 #include <algorithm>
 
 #include "vm/Opcodes.hpp"
+#include "vm/ProgramLoader.hpp" // ProgramHeader
 
 using Byte = unsigned char;
 
@@ -126,14 +127,18 @@ int main(int argc, char** argv) {
     try {
         std::string inputPath;
         std::string outputPath = "a.bin";
+        bool withHeader = false;
+        std::optional<std::string> entryOpt; // label or numeric
         for (int i=1;i<argc;++i) {
             std::string arg = argv[i];
             if (arg == "-o" && i+1 < argc) { outputPath = argv[++i]; }
+            else if (arg == "--with-header") { withHeader = true; }
+            else if (arg == "--entry" && i+1 < argc) { entryOpt = argv[++i]; }
             else if (inputPath.empty()) { inputPath = arg; }
             else { throw std::runtime_error("Unexpected arg: " + arg); }
         }
         if (inputPath.empty()) {
-            std::cerr << "Usage: asm <input.asm> [-o output.bin]\n";
+            std::cerr << "Usage: asm <input.asm> [-o output.bin] [--with-header] [--entry <label|addr>]\n";
             return 2;
         }
         std::ifstream ifs(inputPath);
@@ -247,8 +252,22 @@ int main(int argc, char** argv) {
 
         std::ofstream ofs(outputPath, std::ios::binary);
         if (!ofs) throw std::runtime_error("Failed to open output: " + outputPath);
+        if (withHeader) {
+            vm::ProgramHeader hdr{};
+            hdr.magic[0]='V'; hdr.magic[1]='M'; hdr.magic[2]='B'; hdr.magic[3]='1';
+            hdr.version = 1;
+            // Determine entry: label or numeric, default 0
+            unsigned entry = 0;
+            if (entryOpt.has_value()) {
+                if (labels.count(*entryOpt)) entry = static_cast<unsigned>(labels.at(*entryOpt));
+                else entry = parseImm(*entryOpt);
+            }
+            hdr.entry = entry;
+            ofs.write(reinterpret_cast<const char*>(&hdr), static_cast<std::streamsize>(sizeof(hdr)));
+        }
         ofs.write(reinterpret_cast<const char*>(out.data()), static_cast<std::streamsize>(out.size()));
-        std::cout << "Wrote " << out.size() << " bytes to " << outputPath << "\n";
+        std::size_t total = out.size() + (withHeader ? sizeof(vm::ProgramHeader) : 0);
+        std::cout << "Wrote " << total << " bytes to " << outputPath << "\n";
         return 0;
     } catch (const std::exception& ex) {
         std::cerr << "asm error: " << ex.what() << "\n";
