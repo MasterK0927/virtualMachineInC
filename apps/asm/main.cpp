@@ -9,6 +9,7 @@
 
 #include "vm/Opcodes.hpp"
 #include "vm/ProgramLoader.hpp" // ProgramHeader
+#include <optional>
 
 using Byte = unsigned char;
 
@@ -253,9 +254,9 @@ int main(int argc, char** argv) {
         std::ofstream ofs(outputPath, std::ios::binary);
         if (!ofs) throw std::runtime_error("Failed to open output: " + outputPath);
         if (withHeader) {
-            vm::ProgramHeader hdr{};
+            vm::ProgramHeaderV2 hdr{};
             hdr.magic[0]='V'; hdr.magic[1]='M'; hdr.magic[2]='B'; hdr.magic[3]='1';
-            hdr.version = 1;
+            hdr.version = 2;
             // Determine entry: label or numeric, default 0
             unsigned entry = 0;
             if (entryOpt.has_value()) {
@@ -263,10 +264,12 @@ int main(int argc, char** argv) {
                 else entry = parseImm(*entryOpt);
             }
             hdr.entry = entry;
+            hdr.payloadSize = static_cast<std::uint32_t>(out.size());
+            hdr.checksum = vm::adler32(out.data(), out.size());
             ofs.write(reinterpret_cast<const char*>(&hdr), static_cast<std::streamsize>(sizeof(hdr)));
         }
         ofs.write(reinterpret_cast<const char*>(out.data()), static_cast<std::streamsize>(out.size()));
-        std::size_t total = out.size() + (withHeader ? sizeof(vm::ProgramHeader) : 0);
+        std::size_t total = out.size() + (withHeader ? sizeof(vm::ProgramHeaderV2) : 0);
         std::cout << "Wrote " << total << " bytes to " << outputPath << "\n";
         return 0;
     } catch (const std::exception& ex) {
