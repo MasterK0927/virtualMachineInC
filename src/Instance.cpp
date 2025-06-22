@@ -3,6 +3,7 @@
 
 #include <fstream>
 #include <stdexcept>
+#include <sstream>
 
 namespace vm {
 
@@ -20,24 +21,42 @@ void VMInstance::powerOn() {
     m_cpu->reset();
 }
 
-void VMInstance::attachRamDisk(const std::string& /*path*/) {
-    // Placeholder: In future, load a disk image into a mapped region
-    if (m_logger) m_logger->info("attachRamDisk: not implemented, ignoring");
+void VMInstance::attachRamDisk(const std::string& path) {
+    if (!m_mem) throw std::runtime_error("Memory not initialized");
+    // Load file bytes
+    auto bytes = loadBinaryFile(path);
+    if (bytes.empty()) {
+        if (m_logger) m_logger->warn("attachRamDisk: empty image, skipping");
+        return;
+    }
+    if (bytes.size() > m_mem->size()) {
+        throw std::runtime_error("attachRamDisk: image too large for memory");
+    }
+    // Place at the end of RAM
+    std::size_t base = m_mem->size() - bytes.size();
+    for (std::size_t i = 0; i < bytes.size(); ++i) {
+        m_mem->write8(base + i, bytes[i]);
+    }
+    if (m_logger) {
+        std::ostringstream os;
+        os << "attachRamDisk: loaded '" << path << "' at 0x" << std::hex << base << "-0x" << (base + bytes.size() - 1);
+        m_logger->info(os.str());
+    }
 }
 
 void VMInstance::loadProgramBytes(const std::vector<unsigned char>& bytes) {
     if (!m_mem) throw std::runtime_error("Memory not initialized");
 
-    // Check for optional header
+    // Check for optional header (v1 or v2)
     std::vector<unsigned char> payload = bytes;
     u32 entry = 0;
     if (hasProgramHeader(bytes)) {
-        auto hdr = readProgramHeader(bytes);
+        ProgramHeaderV1 v1{}; ProgramHeaderV2 v2{}; bool isV2 = false;
+        readAnyHeader(bytes, v1, v2, isV2);
         payload = stripProgramHeader(bytes);
-        entry = hdr.entry;
-        if (hdr.version != 1) {
-            throw std::runtime_error("Unsupported program version");
-        }
+        entry = isV2 ? v2.entry : v1.entry;
+        // Optional strict verification can be enabled later via CLI flag
+        verifyHeaderAndPayloadIfRequested(bytes, /*verify=*/false);
     }
 
     if (payload.size() > m_mem->size()) throw std::runtime_error("Program too large for memory");
