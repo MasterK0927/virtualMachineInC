@@ -170,6 +170,8 @@ int main(int argc, char** argv) {
         std::optional<std::string> diskPath; // RAM disk image
         bool interactive = false;
         std::optional<std::string> configPath;
+        bool verifyHeader = false;
+        bool quiet = false;
 
         auto parseMem = [](const std::string& s) -> std::size_t {
             if (s.empty()) return 0;
@@ -199,6 +201,10 @@ int main(int argc, char** argv) {
                 diskPath = argv[++i];
             } else if (arg == "--interactive") {
                 interactive = true;
+            } else if (arg == "--verify") {
+                verifyHeader = true;
+            } else if (arg == "--quiet") {
+                quiet = true;
             } else if (arg == "--config" && i + 1 < argc) {
                 configPath = argv[++i];
             } else if (!arg.empty() && arg[0] != '-') {
@@ -243,8 +249,9 @@ int main(int argc, char** argv) {
         cfg.dumpAfter = dumpAfter;
         cfg.steps = steps;
 
-        std::cout << "Launching VM instance '" << cfg.name << "' with memory " << cfg.memSize << " bytes" << std::endl;
-        VMInstance instance(cfg, &logger);
+        if (!quiet) std::cout << "Launching VM instance '" << cfg.name << "' with memory " << cfg.memSize << " bytes" << std::endl;
+        ILogger* loggerPtr = quiet ? nullptr : &logger;
+        VMInstance instance(cfg, loggerPtr);
         instance.powerOn();
         if (diskPath.has_value()) {
             instance.attachRamDisk(*diskPath);
@@ -305,7 +312,13 @@ int main(int argc, char** argv) {
             }
         } else {
             std::vector<unsigned char> program = loadProgram(binaryPath);
+            // Optional strict verification
+            verifyHeaderAndPayloadIfRequested(program, verifyHeader);
             if (disasmOnly) {
+                // If program has a header, disassemble the payload only
+                if (hasProgramHeader(program)) {
+                    program = stripProgramHeader(program);
+                }
                 disassemble(program);
             } else {
                 if (steps == 0) { instance.loadProgramBytes(program); instance.runUntilHalt(); }
