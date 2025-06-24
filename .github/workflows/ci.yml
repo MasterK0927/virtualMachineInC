@@ -1,0 +1,46 @@
+name: CI
+
+on:
+  push:
+    branches: [ master, main ]
+  pull_request:
+    branches: [ master, main ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: sudo apt-get update && sudo apt-get install -y cmake build-essential
+
+      - name: Configure (RelWithDebInfo)
+        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=RelWithDebInfo -DBUILD_TESTING=ON
+
+      - name: Build
+        run: cmake --build build -j
+
+      - name: Run tests
+        run: ctest --test-dir build --output-on-failure
+
+      - name: Install (staging)
+        run: cmake --install build --prefix ${{ github.workspace }}/_staging
+
+      - name: Package (CPack)
+        run: |
+          cmake --build build --target package
+          ls -l build/*.tar.gz || true
+
+      - name: Upload artifact (install tree)
+        uses: actions/upload-artifact@v4
+        with:
+          name: simplevm-install-tree
+          path: _staging
+
+      - name: Upload artifact (packages)
+        uses: actions/upload-artifact@v4
+        with:
+          name: simplevm-packages
+          path: build/*.tar.gz
