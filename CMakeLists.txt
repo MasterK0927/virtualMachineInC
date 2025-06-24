@@ -32,6 +32,12 @@ elseif (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
     target_compile_options(vm_tests PRIVATE /W4)
 endif()
 
+# Enable CTest and register tests
+include(CTest)
+if (BUILD_TESTING)
+    add_test(NAME vm_tests COMMAND vm_tests)
+endif()
+
 # VM application
 add_executable(vm_app ${CMAKE_CURRENT_SOURCE_DIR}/apps/vm/main.cpp)
 target_link_libraries(vm_app PRIVATE vmcore)
@@ -51,3 +57,25 @@ if (CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
 elseif (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
     target_compile_options(asm_app PRIVATE /W4)
 endif()
+
+# Install rules
+include(GNUInstallDirs)
+install(TARGETS vm_app asm_app
+    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+)
+install(TARGETS vmcore
+    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+)
+install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/include/vm/
+    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/vm
+    FILES_MATCHING PATTERN "*.hpp"
+)
+
+# CPack packaging (TGZ)
+set(CPACK_PACKAGE_NAME "simplevm")
+set(CPACK_PACKAGE_VENDOR "SimpleVM Project")
+set(CPACK_PACKAGE_VERSION "0.1.0")
+set(CPACK_GENERATOR "TGZ")
+include(CPack)
