@@ -1,5 +1,6 @@
 #include "vm/Instance.hpp"
 #include "vm/ProgramLoader.hpp"
+#include "vm/ConsoleDevice.hpp"
 
 #include <fstream>
 #include <stdexcept>
@@ -11,7 +12,14 @@ VMInstance::VMInstance(const VMConfig& cfg, ILogger* logger)
     : m_cfg(cfg), m_logger(logger) {
     // Initialize memory and CPU on construction
     m_mem = std::make_unique<RamMemory>(m_cfg.memSize);
-    m_cpu = std::make_unique<SimpleCPU>(*m_mem, m_logger);
+    // Create bus and map default devices
+    m_bus = std::make_unique<BusMemory>(*m_mem);
+    // Map a ConsoleOut device near the top of RAM (reserve last 256 bytes for devices)
+    std::size_t consoleBase = (m_cfg.memSize >= 256) ? (m_cfg.memSize - 256) : 0;
+    auto console = std::make_shared<ConsoleOutDevice>(m_logger);
+    m_bus->mapDevice(consoleBase, console);
+    // CPU runs against the bus (so device mappings are visible)
+    m_cpu = std::make_unique<SimpleCPU>(*m_bus, m_logger);
 }
 
 void VMInstance::powerOn() {
@@ -29,11 +37,13 @@ void VMInstance::attachRamDisk(const std::string& path) {
         if (m_logger) m_logger->warn("attachRamDisk: empty image, skipping");
         return;
     }
-    if (bytes.size() > m_mem->size()) {
+    // Reserve last 256 bytes for devices (e.g., console)
+    const std::size_t reserved = (m_mem->size() >= 256) ? 256 : 0;
+    if (bytes.size() + reserved > m_mem->size()) {
         throw std::runtime_error("attachRamDisk: image too large for memory");
     }
-    // Place at the end of RAM
-    std::size_t base = m_mem->size() - bytes.size();
+    // Place at the end of RAM below the reserved device region
+    std::size_t base = m_mem->size() - reserved - bytes.size();
     for (std::size_t i = 0; i < bytes.size(); ++i) {
         m_mem->write8(base + i, bytes[i]);
     }
