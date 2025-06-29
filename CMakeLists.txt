@@ -13,6 +13,8 @@ set(VMCORE_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/src/CPU.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/Decoder.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/Instance.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/Bus.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/ConsoleDevice.cpp
 )
 
 add_library(vmcore ${VMCORE_SOURCES})
