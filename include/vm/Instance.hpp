@@ -11,6 +11,7 @@
 #include "vm/Types.hpp"
 #include "vm/Logger.hpp"
 #include "vm/Memory.hpp"
+#include "vm/Bus.hpp"
 #include "vm/CPU.hpp"
 #include "vm/Config.hpp"
 
@@ -54,6 +55,7 @@ private:
     VMConfig m_cfg;
     ILogger* m_logger{nullptr};
     std::unique_ptr<RamMemory> m_mem;
+    std::unique_ptr<BusMemory> m_bus; // memory bus with devices
     std::unique_ptr<SimpleCPU> m_cpu;
     std::set<u32> m_breakpoints;
 };
