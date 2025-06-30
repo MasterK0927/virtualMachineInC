@@ -48,4 +48,30 @@ inline LogSeverity parseSeverity(const std::string& s) {
     return LogSeverity::Info;
 }
 
+// Buffered logger keeps last N lines for GUI consoles while optionally forwarding.
+class BufferedLogger : public ILogger {
+public:
+    explicit BufferedLogger(std::size_t capacity = 1024, ILogger* forward = nullptr)
+        : m_capacity(capacity), m_forward(forward) {}
+
+    void setForward(ILogger* fwd) { m_forward = fwd; }
+    const std::vector<std::string>& lines() const { return m_lines; }
+    void clear() { m_lines.clear(); }
+
+    void info(const std::string& msg) override { add("[INFO] " + msg); if (m_forward) m_forward->info(msg); }
+    void warn(const std::string& msg) override { add("[WARN] " + msg); if (m_forward) m_forward->warn(msg); }
+    void error(const std::string& msg) override { add("[ERROR] " + msg); if (m_forward) m_forward->error(msg); }
+
+private:
+    void add(const std::string& line) {
+        if (m_lines.size() >= m_capacity) {
+            m_lines.erase(m_lines.begin(), m_lines.begin() + (m_capacity / 4)); // drop 25%
+        }
+        m_lines.push_back(line);
+    }
+    std::size_t m_capacity;
+    ILogger* m_forward{nullptr};
+    std::vector<std::string> m_lines;
+};
+
 } // namespace vm
