@@ -1,5 +1,6 @@
 #pragma once
 
+#include <string>
 #include "vm/Types.hpp"
 #include "vm/Opcodes.hpp"
 
@@ -24,5 +25,9 @@ class SimpleDecoder : public IDecoder {
 public:
     DecodedInst decode(const IMemory& mem, u32 pc) const override;
 };
+
+// Disassembly utilities
+std::string disassemble(const DecodedInst& inst);
+std::string opcodeToString(Opcode op);
 
 } // namespace vm
