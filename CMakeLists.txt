@@ -81,3 +81,46 @@ set(CPACK_PACKAGE_VENDOR "SimpleVM Project")
 set(CPACK_PACKAGE_VERSION "0.1.0")
 set(CPACK_GENERATOR "TGZ")
 include(CPack)
+
+# Optional GUI (SDL2)
+option(BUILD_GUI "Build SDL2 GUI frontend" OFF)
+if (BUILD_GUI)
+    find_package(SDL2 QUIET)
+    if (SDL2_FOUND)
+        include(FetchContent)
+        set(FETCHCONTENT_QUIET ON)
+        # Fetch Dear ImGui (header-only + backends built as part of target)
+        FetchContent_Declare(
+            imgui
+            GIT_REPOSITORY https://github.com/ocornut/imgui.git
+            GIT_TAG v1.90.8
+        )
+        FetchContent_MakeAvailable(imgui)
+
+        set(IMGUI_DIR ${imgui_SOURCE_DIR})
+        set(IMGUI_BACKENDS
+            ${IMGUI_DIR}/backends/imgui_impl_sdl2.cpp
+            ${IMGUI_DIR}/backends/imgui_impl_sdlrenderer2.cpp
+        )
+
+        add_executable(vm_gui
+            ${CMAKE_CURRENT_SOURCE_DIR}/apps/gui/main.cpp
+            ${CMAKE_CURRENT_SOURCE_DIR}/apps/gui/GuiApp.cpp
+            ${IMGUI_DIR}/imgui.cpp
+            ${IMGUI_DIR}/imgui_draw.cpp
+            ${IMGUI_DIR}/imgui_tables.cpp
+            ${IMGUI_DIR}/imgui_widgets.cpp
+            ${IMGUI_DIR}/misc/cpp/imgui_stdlib.cpp
+            ${IMGUI_BACKENDS}
+        )
+        target_include_directories(vm_gui PRIVATE ${IMGUI_DIR} ${IMGUI_DIR}/backends)
+        target_link_libraries(vm_gui PRIVATE vmcore SDL2::SDL2)
+        if (CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
+            target_compile_options(vm_gui PRIVATE -Wall -Wextra -Wpedantic)
+        elseif (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
+            target_compile_options(vm_gui PRIVATE /W4)
+        endif()
+    else()
+        message(WARNING "SDL2 not found; vm_gui will not be built. Install libsdl2-dev or disable BUILD_GUI.")
+    endif()
+endif()
