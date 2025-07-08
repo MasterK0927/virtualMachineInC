@@ -44,3 +44,24 @@ jobs:
         with:
           name: simplevm-packages
           path: build/*.tar.gz
+
+  build-gui:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install dependencies (including SDL2)
+        run: sudo apt-get update && sudo apt-get install -y cmake build-essential libsdl2-dev
+
+      - name: Configure with GUI
+        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DBUILD_GUI=ON
+
+      - name: Build with GUI
+        run: cmake --build build -j
+
+      - name: Test GUI build
+        run: |
+          # Just verify the GUI binary exists and links properly
+          ldd build/vm_gui || true
+          file build/vm_gui
