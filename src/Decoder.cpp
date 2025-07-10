@@ -27,27 +27,34 @@ DecodedInst SimpleDecoder::decode(const IMemory& mem, u32 pc) const {
             break;
         case Opcode::LOAD:
         case Opcode::STORE:
-            if (pc + 3 >= mem.size()) throw std::runtime_error("LOAD/STORE: insufficient bytes");
+            if (pc + 4 >= mem.size()) throw std::runtime_error("LOAD/STORE: insufficient bytes");
             inst.a = mem.read8(pc + 1);
-            inst.imm = mem.read16(pc + 2);
-            inst.size = 4;
+            inst.b = mem.read8(pc + 2);
+            inst.imm = mem.read16(pc + 3);
+            inst.size = 5;
             break;
         case Opcode::ADD:
         case Opcode::SUB:
         case Opcode::AND:
         case Opcode::OR:
         case Opcode::XOR:
+            if (pc + 3 >= mem.size()) throw std::runtime_error("ALU: insufficient bytes");
+            inst.a = mem.read8(pc + 1); // rD
+            inst.b = mem.read8(pc + 2); // rA
+            inst.c = mem.read8(pc + 3); // rB
+            inst.size = 4;
+            break;
         case Opcode::CMP:
-            if (pc + 2 >= mem.size()) throw std::runtime_error("ALU: insufficient bytes");
-            inst.a = mem.read8(pc + 1);
-            inst.b = mem.read8(pc + 2);
+            if (pc + 2 >= mem.size()) throw std::runtime_error("CMP: insufficient bytes");
+            inst.a = mem.read8(pc + 1); // rA
+            inst.b = mem.read8(pc + 2); // rB
             inst.size = 3;
             break;
         case Opcode::PUSH:
         case Opcode::POP:
         case Opcode::OUT:
         case Opcode::IN:
-            if (pc >= mem.size()) throw std::runtime_error("Single-reg: insufficient bytes");
+            if (pc + 1 >= mem.size()) throw std::runtime_error("Single-reg: insufficient bytes");
             inst.a = mem.read8(pc + 1);
             inst.size = 2;
             break;
@@ -115,6 +122,8 @@ std::string disassemble(const DecodedInst& inst) {
         case Opcode::AND:
         case Opcode::OR:
         case Opcode::XOR:
+            os << " R" << static_cast<int>(inst.a) << ", R" << static_cast<int>(inst.b) << ", R" << static_cast<int>(inst.c);
+            break;
         case Opcode::CMP:
             os << " R" << static_cast<int>(inst.a) << ", R" << static_cast<int>(inst.b);
             break;

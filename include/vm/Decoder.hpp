@@ -10,8 +10,9 @@ struct IMemory;
 
 struct DecodedInst {
     Opcode op{Opcode::HALT};
-    u8 a{0};
-    u8 b{0};
+    u8 a{0};  // First register (destination for ALU, target for LOAD/STORE)
+    u8 b{0};  // Second register (source for ALU, base for LOAD/STORE)
+    u8 c{0};  // Third register (second source for ALU)
     u32 imm{0};
     u8 size{1};
 };

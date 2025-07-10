@@ -106,7 +106,7 @@ void SimpleCPU::step() {
         case Opcode::XOR: {
             const u8 rD = di.a;
             const u8 rA = di.b;
-            const u8 rB = static_cast<u8>(di.imm & 0xFF);
+            const u8 rB = di.c;
             if (rD < REG_COUNT && rA < REG_COUNT && rB < REG_COUNT) {
                 u32 a = m_regs[rA];
                 u32 b = m_regs[rB];
