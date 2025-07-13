@@ -1,25 +1,55 @@
-# Build artifacts
-/build/
-CMakeFiles/
-CMakeCache.txt
-cmake_install.cmake
-Makefile
+# Build directories
+build/
+_build/
+cmake-build-*/
 
-# Compiled binaries
+# Compiled Object files
 *.o
 *.obj
+
+# Precompiled Headers
+*.gch
+*.pch
+
+# Compiled Dynamic libraries
+*.so
+*.dylib
+*.dll
+
+# Fortran module files
+*.mod
+*.smod
+
+# Compiled Static libraries
+*.lai
+*.la
 *.a
 *.lib
-*.so
-*.dll
-*.dylib
+
+# Executables
 *.exe
 *.out
-*.bin
+*.app
 
-# OS/editor files
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Temporary files
+*.tmp
+*_broken*
+*_old*
+*_backup*
+
+# OS files
 .DS_Store
 Thumbs.db
-.idea/
-.vscode/
-build/
+
+# Test outputs
+*.bin
+*.vmb
+test_*
+temp_*/

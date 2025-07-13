@@ -1,9 +1,19 @@
 cmake_minimum_required(VERSION 3.15)
-project(SimpleVM CXX)
+project(SimpleVM 
+    VERSION 1.0.0
+    DESCRIPTION "A complete virtual machine implementation with assembler and GUI debugger"
+    LANGUAGES CXX
+)
 
+# C++ standard
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
+
+# Build type default
+if(NOT CMAKE_BUILD_TYPE)
+    set(CMAKE_BUILD_TYPE Release)
+endif()
 
 # Include directories
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
@@ -82,20 +92,34 @@ set(CPACK_PACKAGE_VERSION "0.1.0")
 set(CPACK_GENERATOR "TGZ")
 include(CPack)
 
-# Optional GUI (SDL2)
+# Optional GUI (SDL2) - Disabled by default to avoid network dependencies
 option(BUILD_GUI "Build SDL2 GUI frontend" OFF)
 if (BUILD_GUI)
+    message(STATUS "GUI build requested - checking for SDL2...")
     find_package(SDL2 QUIET)
     if (SDL2_FOUND)
+        message(STATUS "SDL2 found - GUI will be built with FetchContent for ImGui")
         include(FetchContent)
-        set(FETCHCONTENT_QUIET ON)
+        set(FETCHCONTENT_QUIET OFF)  # Show progress
+        
+        # Set timeout for fetch operations
+        set(FETCHCONTENT_UPDATES_DISCONNECTED ON)
+        
         # Fetch Dear ImGui (header-only + backends built as part of target)
         FetchContent_Declare(
             imgui
             GIT_REPOSITORY https://github.com/ocornut/imgui.git
             GIT_TAG v1.90.8
+            GIT_SHALLOW TRUE
+            TIMEOUT 30
         )
-        FetchContent_MakeAvailable(imgui)
+        
+        # Check if imgui is already available
+        FetchContent_GetProperties(imgui)
+        if(NOT imgui_POPULATED)
+            message(STATUS "Downloading Dear ImGui...")
+            FetchContent_Populate(imgui)
+        endif()
 
         set(IMGUI_DIR ${imgui_SOURCE_DIR})
         set(IMGUI_BACKENDS
@@ -120,7 +144,10 @@ if (BUILD_GUI)
         elseif (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
             target_compile_options(vm_gui PRIVATE /W4)
         endif()
+        message(STATUS "GUI target configured successfully")
     else()
         message(WARNING "SDL2 not found; vm_gui will not be built. Install libsdl2-dev or disable BUILD_GUI.")
     endif()
+else()
+    message(STATUS "GUI build disabled. Use -DBUILD_GUI=ON to enable.")
 endif()
