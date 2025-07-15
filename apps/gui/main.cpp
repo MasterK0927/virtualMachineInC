@@ -14,6 +14,7 @@
 #include "vm/Instance.hpp"
 #include "vm/ProgramLoader.hpp"
 #include "vm/Logger.hpp"
+#include "vm/Opcodes.hpp"
 #include "GuiApp.hpp"
 
 using namespace vm;
@@ -89,7 +90,7 @@ int main(int argc, char** argv) {
         ImGui::Render();
         SDL_SetRenderDrawColor(renderer, 20, 20, 22, 255);
         SDL_RenderClear(renderer);
-        ImGui_ImplSDLRenderer2_RenderDrawData(ImGui::GetDrawData());
+        ImGui_ImplSDLRenderer2_RenderDrawData(ImGui::GetDrawData(), renderer);
         SDL_RenderPresent(renderer);
     }
 
