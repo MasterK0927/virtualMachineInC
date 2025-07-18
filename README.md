@@ -1,104 +1,104 @@
-Virtual Machine in C++
+# SimpleVM
 
-This project implements a modular, stack-friendly register VM in modern C++, with an assembler and a command-line VM runner. It follows SOLID principles with clear interfaces for CPU, Memory, and Loader, plus a simple instance orchestration layer.
+A complete virtual machine implementation in C++ with assembler, runtime, and GUI debugger.
 
-Project layout
-- `include/vm/` – public interfaces and headers (`CPU.hpp`, `Memory.hpp`, `Decoder.hpp`, `Opcodes.hpp`, `ProgramLoader.hpp`, `Instance.hpp`, `Config.hpp`, ...)
-- `src/` – core implementations (`CPU.cpp`, `Decoder.cpp`, `Instance.cpp`)
-- `apps/asm/` – assembler CLI (`asm_app`)
-- `apps/vm/` – VM runner CLI (`vm_app`)
-- `examples/` – sample assembly programs
-- `tests/` – small smoke tests (no framework)
+## Features
 
-Build
+- **Complete VM**: 19-instruction RISC-like ISA with 8 registers
+- **Memory Management**: 64KB RAM with memory-mapped device support  
+- **Assembler**: Full assembly language with labels and program headers
+- **CLI Tools**: VM runner with debugging, disassembly, and interactive mode
+- **GUI Debugger**: Professional debugging interface with real-time inspection
+- **Device System**: Extensible memory-mapped I/O with console device
+
+## Quick Start
+
+### Build
 ```bash
-cmake -S . -B build
-cmake --build build -j
+# Core VM and CLI tools
+cmake -S . -B build && cmake --build build -j
+
+# With GUI debugger (requires SDL2)
+cmake -S . -B build -DBUILD_GUI=ON && cmake --build build -j
 ```
 
-Run the VM (demo or binary)
+### Usage
 ```bash
-# Demo program bundled in vm_app
-./build/vm_app --demo --dump
+# Assemble and run a program
+./build/asm_app examples/print_number.asm -o program.bin
+./build/vm_app program.bin --dump
 
-# Assemble an example and run it (raw bytecode)
-./build/asm_app examples/print_number.asm -o build/print_number.bin
-./build/vm_app build/print_number.bin --dump
-
-# With header + entry point (recommended for labeled entry)
-./build/asm_app examples/call_and_ret.asm -o build/call_and_ret.vmb --with-header --entry start
-./build/vm_app build/call_and_ret.vmb --dump
+# GUI debugger (if built)
+./build/vm_gui program.bin
 ```
 
-Assembler usage
-```bash
-asm_app <input.asm> [-o output.bin] [--with-header] [--entry <label|addr>]
+## Example Program
+
+```assembly
+; Print a number and halt
+start:
+    LOADI R0, 42        ; Load value
+    OUT   R0            ; Print to console  
+    HALT                ; Stop execution
 ```
-- `--with-header` emits a program header (see below) before bytecode.
-- `--entry` sets the initial entry PC (label or numeric). Requires `--with-header` to take effect.
 
-Program header (optional)
-- Magic: `VMB1`
-- Fields: `version` (u32, currently 1), `entry` (u32, initial PC)
-- The VM loader validates the magic and version. If present, `entry` is used to set `PC`; otherwise `PC=0`.
+## Documentation
 
-Instruction set (summary)
-- Data movement
-  - `LOADI rD, imm32`
-  - `LOAD rD, [rS + off16]`
-  - `STORE [rD + off16], rS`
-  - `PUSH rS`, `POP rD`
-- ALU
-  - `ADD rD, rA, rB`, `SUB rD, rA, rB`, `AND rD, rA, rB`, `OR rD, rA, rB`, `XOR rD, rA, rB`
-  - `CMP rA, rB` (sets Z flag: 1 if equal)
-- Control flow
-  - `JMP addr32`, `JZ addr32`, `JNZ addr32`, `CALL addr32`, `RET`
-- I/O
-  - `OUT rS` (host stdout), `IN rD` (reads integer from stdin)
-- System
-  - `HALT`
+- **[Architecture](docs/ARCHITECTURE.md)**: System design and components
+- **[API Reference](docs/API.md)**: Programming interfaces
+- **[ISA Manual](docs/ISA.md)**: Complete instruction set documentation
 
-CLI runner features (`vm_app`)
-- Load from raw bytecode or headered program.
-- Run until HALT or step N instructions (`--steps`).
-- Interactive REPL (`--interactive`): breakpoints, memory read/write, register set, disassembly, snapshots.
-- Dump CPU state (`--dump`).
+## Project Structure
 
-Examples
-- `examples/print_number.asm` – LOADI/OUT/HALT.
-- `examples/call_and_ret.asm` – CALL/RET with labeled entry (use `--with-header --entry start`).
-- `examples/branch_and_loop.asm` – CMP/JZ/JNZ with a simple loop.
+```
+├── include/vm/          # Public API headers
+├── src/                 # Core implementation  
+├── apps/                # Applications (vm, asm, gui)
+├── tests/               # Unit and integration tests
+├── examples/            # Example assembly programs
+└── docs/                # Documentation
+```
 
-Notes
-- Endianness: little-endian encoding for immediates and memory I/O.
-- Snapshot files are a simple binary format for development (subject to change).
-- The code aims to be minimal yet extensible; contributions are welcome.
-Learning to impl complex systems like VirtualMachine in C
+## Tools
 
-This project involves building a virtual machine from scratch by completing the following tasks:  
+- **`asm_app`**: Assembly language compiler
+- **`vm_app`**: Command-line VM runner with debugging
+- **`vm_gui`**: Professional GUI debugger (optional)
 
-1. **Defining a Custom Instruction Set Architecture**  
-   - [ ] Design opcodes for arithmetic and logical operations.  
-   - [ ] Add instructions for control flow (jumps, branches).  
-   - [ ] Implement stack-related instructions (e.g., PUSH, POP).  
-   - [ ] Enable basic input/output operations.  
+## Key Features
 
-2. **Developing Core VM Components**  
-   - [ ] Create a CPU core with registers and a program counter.  
-   - [ ] Implement the fetch-decode-execute cycle.  
-   - [ ] Develop memory management for reading, writing, and allocation.  
+### Instruction Set
+19 opcodes including data movement, ALU operations, control flow, stack operations, and I/O.
 
-3. **Creating a Program Execution Framework**  
-   - [ ] Build functionality to load and execute binary programs.  
-   - [ ] Add support for recursion and function calls.  
-   - [ ] Integrate basic I/O functionality for interacting with the VM.  
+### Memory-Mapped I/O
+Extensible device system with console device at 0xFF00.
 
-4. **Adding Debugging and Testing Capabilities**  
-   - [ ] Implement step-by-step execution for debugging.  
-   - [ ] Add memory and register inspection tools.  
-   - [ ] Provide logging for program behavior analysis.  
+### Program Headers
+Versioned format with integrity checking and entry point specification.
 
-5. **Laying the Foundation for Future Features**  
-   - [ ] Design a modular and extensible architecture.  
-   - [ ] Threading, interrupts, or hardware emulation.  
+### Professional Debugging
+- Real-time CPU state inspection
+- Memory hex viewer with editing
+- Interactive breakpoint management
+- Console output capture
 
+## Installation
+
+```bash
+# Install system-wide
+sudo cmake --install build
+
+# Create distribution package
+cmake --build build --target package
+```
+
+## Testing
+
+```bash
+./build/vm_tests                    # Unit tests
+ctest --test-dir build             # All tests
+```
+
+## License
+
+MIT License - see LICENSE file for details.
